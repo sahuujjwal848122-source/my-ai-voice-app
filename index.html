@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Lab</title>
+    
+    <!-- PWA and Mobile-Friendly Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="AI Voice Lab">
+    <meta name="apple-mobile-web-app-title" content="AI Voice Lab">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="msapplication-navbutton-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="A powerful text-to-speech and voice cloning web application.">
+    
+    <!-- Manifest Placeholder: Create a manifest.json file and uncomment the line below -->
+    <!-- <link rel="manifest" href="/manifest.json"> -->
+
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --fg-color: #ffffff;
+            --text-color: #1c1e21;
+            --text-color-light: #606770;
+            --border-color: #ced0d4;
+            --primary-color: #007bff;
+            --primary-color-hover: #0056b3;
+            --secondary-color: #6c757d;
+            --danger-color: #dc3545;
+            --success-color: #28a745;
+            --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --border-radius: 8px;
+            --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark-mode {
+            --bg-color: #18191a;
+            --fg-color: #242526;
+            --text-color: #e4e6eb;
+            --text-color-light: #b0b3b8;
+            --border-color: #3a3b3c;
+            --primary-color: #2d88ff;
+            --primary-color-hover: #1d72df;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; }
+        body { padding: 1rem; max-width: 800px; margin: 0 auto; }
+        .container { display: flex; flex-direction: column; gap: 1.5rem; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
+        header h1 { font-size: 1.75rem; }
+        .card { background-color: var(--fg-color); border-radius: var(--border-radius); box-shadow: var(--shadow); padding: 1.5rem; border: 1px solid var(--border-color); }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        textarea, select, input[type="text"] { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--border-radius); background-color: var(--bg-color); color: var(--text-color); font-family: inherit; font-size: 1rem; }
+        textarea:focus, select:focus, input[type="text"]:focus { outline: none; border-color: var(--primary-color); }
+        textarea { resize: vertical; min-height: 120px; }
+        .button-group { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+        .button { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.25rem; border: none; border-radius: var(--border-radius); font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s, transform 0.1s; min-height: 44px; min-width: 44px; }
+        .button:active { transform: scale(0.98); }
+        .button:disabled { cursor: not-allowed; opacity: 0.6; }
+        .button.primary { background-color: var(--primary-color); color: white; }
+        .button.primary:hover:not(:disabled) { background-color: var(--primary-color-hover); }
+        .button.secondary { background-color: var(--secondary-color); color: white; }
+        .button.danger { background-color: var(--danger-color); color: white; }
+        .button svg { width: 1.2em; height: 1.2em; fill: currentColor; }
+        .playback-controls { display: flex; flex-direction: column; gap: 1rem; }
+        .playback-controls .controls { display: flex; align-items: center; gap: 1rem; }
+        .playback-controls .seek-bar { flex-grow: 1; -webkit-appearance: none; appearance: none; width: 100%; height: 8px; background: var(--border-color); outline: none; border-radius: 4px; }
+        .playback-controls .seek-bar::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; }
+        .playback-controls .seek-bar::-moz-range-thumb { width: 18px; height: 18px; background: var(--primary-color); cursor: pointer; border-radius: 50%; }
+        .time-display { font-family: monospace; font-size: 0.9rem; color: var(--text-color-light); }
+        .parameter-sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+        .slider-group { display: flex; flex-direction: column; }
+        .slider-group .label-value { display: flex; justify-content: space-between; }
+        .slider-group input[type="range"] { width: 100%; }
+        .voice-management { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+        .voice-management .form-group { flex-grow: 1; margin-bottom: 0; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
+        .modal.is-visible { display: flex; }
+        .modal-content { background-color: var(--fg-color); padding: 2rem; border-radius: var(--border-radius); width: 90%; max-width: 600px; position: relative; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-color-light); }
+        .modal-tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 1.5rem; }
+        .tab-button { padding: 0.75rem 1.25rem; cursor: pointer; background: none; border: none; border-bottom: 3px solid transparent; font-size: 1rem; color: var(--text-color-light); }
+        .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .recording-ui { text-align: center; }
+        .vu-meter { width: 100%; height: 60px; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: var(--border-radius); margin: 1rem 0; }
+        .recording-status { font-weight: 600; margin: 1rem 0; min-height: 1.6em; }
+        .checkbox-group { display: flex; align-items: center; gap: 0.5rem; }
+        .checkbox-group label { margin-bottom: 0; font-weight: normal; }
+        .progress-bar { width: 100%; height: 10px; background-color: var(--border-color); border-radius: 5px; overflow: hidden; margin: 1rem 0; }
+        .progress-bar-inner { height: 100%; width: 0; background-color: var(--primary-color); transition: width 0.3s; }
+        .progress-bar.indeterminate .progress-bar-inner { width: 100%; background-image: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-color-hover) 50%, var(--primary-color) 100%); animation: indeterminate-progress 2s infinite linear; }
+        @keyframes indeterminate-progress { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+        .notification { position: fixed; top: 1rem; right: 1rem; padding: 1rem 1.5rem; border-radius: var(--border-radius); color: white; z-index: 2000; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideIn 0.3s ease-out; opacity: 0; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .notification.is-visible { opacity: 1; }
+        .notification.success { background-color: var(--success-color); }
+        .notification.error { background-color: var(--danger-color); }
+        .notification.info { background-color: var(--secondary-color); }
+        .dev-panel { margin-top: 1rem; }
+        .dev-panel summary { font-weight: bold; cursor: pointer; }
+        .dev-panel pre { background-color: var(--bg-color); border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--border-radius); max-height: 300px; overflow: auto; font-size: 0.8rem; white-space: pre-wrap; word-break: break-all; }
+        .dark-mode-toggle { cursor: pointer; background: none; border: none; color: var(--text-color); padding: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AI Voice Lab</h1>
+            <button id="darkModeToggle" class="dark-mode-toggle" aria-label="Toggle Dark Mode">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                    <path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.106a.75.75 0 010 1.06l-1.591 1.59a.75.75 0 11-1.06-1.06l1.59-1.59a.75.75 0 011.06 0zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.803 17.803a.75.75 0 01-1.06 0l-1.59-1.59a.75.75 0 011.06-1.06l1.59 1.59c.292.293.292.767 0 1.06zM12 21a.75.75 0 01-.75-.75v-2.25a.75.75 0 011.5 0V20.25a.75.75 0 01-.75-.75zM6.106 18.894a.75.75 0 011.06 0l1.59 1.59a.75.75 0 11-1.06 1.06l-1.59-1.59a.75.75 0 010-1.06zM3 12a.75.75 0 01.75-.75h2.25a.75.75 0 010 1.5H3.75A.75.75 0 013 12zM6.106 6.106a.75.75 0 010-1.06l1.59-1.59a.75.75 0 011.06 1.06L7.166 7.166a.75.75 0 01-1.06 0z" class="sun" />
+                    <path d="M11.996 2.003a.75.75 0 01.5.025 9.71 9.71 0 00-2.887 2.887.75.75 0 01-1.052-.273A9.75 9.75 0 0111.996 2.003zM12.5 17.25a.75.75 0 00.526.223 9.71 9.71 0 012.887-2.887.75.75 0 00-.273-1.052 9.75 9.75 0 00-3.14 3.716zM17.25 12.5a.75.75 0 00.223.526 9.71 9.71 0 01-2.887 2.887.75.75 0 00-1.052-.273 9.75 9.75 0 003.716-3.14zM4.529 8.613a.75.75 0 00.273 1.052 9.71 9.71 0 012.887 2.887.75.75 0 001.052-.273A9.75 9.75 0 004.53 8.613z" class="moon" style="display:none;" />
+                </svg>
+            </button>
+        </header>
+        <div class="card">
+            <div class="form-group">
+                <label for="text-input">Text to Synthesize</label>
+                <textarea id="text-input" rows="5" placeholder="Enter text here..."></textarea>
+            </div>
+            <div class="button-group">
+                <button id="synthesize-btn" class="button primary">
+                    <svg viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM7 6l8 4-8 4V6z"/></svg>
+                    <span>Synthesize & Play</span>
+                </button>
+                <button id="demo-hello-btn" class="button secondary">Say Hello</button>
+            </div>
+            <div id="synthesis-progress-container" style="display: none; margin-top: 1rem;">
+                <p>Synthesizing...</p>
+                <div class="progress-bar indeterminate">
+                    <div class="progress-bar-inner"></div>
+                </div>
+            </div>
+        </div>
+        <div class="card" id="playback-card" style="display: none;">
+            <h2>Playback</h2>
+            <div class="playback-controls">
+                <audio id="audio-player" style="display: none;"></audio>
+                <div class="controls">
+                    <button id="play-pause-btn" class="button primary" aria-label="Play">
+                        <svg id="play-icon" viewBox="0 0 20 20"><path d="M7 6l8 4-8 4V6z"/></svg>
+                        <svg id="pause-icon" viewBox="0 0 20 20" style="display: none;"><path d="M5 16h3V4H5v12zm7 0h3V4h-3v12z"/></svg>
+                    </button>
+                    <button id="stop-btn" class="button secondary" aria-label="Stop">
+                        <svg viewBox="0 0 20 20"><path d="M5 5h10v10H5z"/></svg>
+                    </button>
+                    <input type="range" id="seek-bar" class="seek-bar" value="0" min="0" max="100" step="0.1">
+                    <span id="time-display" class="time-display">00:00 / 00:00</span>
+                </div>
+                <div class="button-group">
+                    <button id="download-btn" class="button secondary">
+                        <svg viewBox="0 0 20 20"><path d="M13 8V2H7v6H2l8 8 8-8h-5zM0 18h20v2H0v-2z"/></svg>
+                        <span>Download WAV</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Parameters</h2>
+            <div class="parameter-sliders">
+                <div class="slider-group">
+                    <div class="label-value">
+                        <label for="speed-slider">Speed</label>
+                        <span id="speed-value">1.0x</span>
+                    </div>
+                    <input type="range" id="speed-slider" min="0.5" max="2" value="1" step="0.1">
+                </div>
+                <div class="slider-group">
+                    <div class="label-value">
+                        <label for="pitch-slider">Pitch</label>
+                        <span id="pitch-value">1.0</span>
+                    </div>
+                    <input type="range" id="pitch-slider" min="0.5" max="2" value="1" step="0.1">
+                </div>
+                <div class="slider-group">
+                    <div class="label-value">
+                        <label for="volume-slider">Volume</label>
+                        <span id="volume-value">100%</span>
+                    </div>
+                    <input type="range" id="volume-slider" min="0" max="1" value="1" step="0.01">
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h2>Voice Selection</h2>
+            <div class="voice-management">
+                <div class="form-group">
+                    <label for="voice-select">Active Voice</label>
+                    <select id="voice-select"></select>
+                </div>
+                <div class="button-group">
+                    <button id="clone-voice-btn" class="button primary">Clone New Voice</button>
+                    <button id="manage-voices-btn" class="button secondary" style="display:none;">Manage</button>
+                </div>
+            </div>
+             <p id="fallback-notice" style="display:none; color: var(--text-color-light); font-size: 0.9rem; margin-top: 0.5rem;">
+                Using browser's built-in voice. Clone a new voice to use AI synthesis.
+            </p>
+        </div>
+        <details class="dev-panel">
+            <summary>Developer Tools</summary>
+            <div class="card">
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="dev-local-only-toggle">
+                    <label for="dev-local-only-toggle">Use Local Fallback Only</label>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="dev-mock-backend-toggle">
+                    <label for="dev-mock-backend-toggle">Mock Backend Requests</label>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="dev-logs-toggle" checked>
+                    <label for="dev-logs-toggle">Show Dev Logs in Console</label>
+                </div>
+                <h3>Logs</h3>
+                <pre id="dev-logs-output">No logs yet.</pre>
+            </div>
+        </details>
+    </div>
+    <div id="clone-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" aria-label="Close">&times;</button>
+            <h2>Create New Voice Profile</h2>
+            <div class="modal-tabs">
+                <button class="tab-button active" data-tab="record">Record Sample</button>
+                <button class="tab-button" data-tab="upload">Upload File</button>
+                <button class="tab-button" data-tab="url">From URL</button>
+            </div>
+            <div id="tab-record" class="tab-content active">
+                <p>Record a 10-30 second audio sample of clear speech in a quiet environment.</p>
+                <div class="recording-ui">
+                    <canvas id="vu-meter" class="vu-meter"></canvas>
+                    <div id="recording-status" class="recording-status">Ready to record</div>
+                    <div class="button-group" style="justify-content: center;">
+                        <button id="record-btn" class="button primary">
+                            <svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="6" fill="#dc3545"/></svg>
+                            <span>Record</span>
+                        </button>
+                        <button id="stop-record-btn" class="button danger" style="display: none;">
+                            <svg viewBox="0 0 20 20"><path d="M5 5h10v10H5z"/></svg>
+                            <span>Stop</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="recorded-audio-controls" style="display:none; margin-top: 1rem;">
+                    <audio id="recorded-audio-player" controls style="width:100%;"></audio>
+                    <button id="download-sample-btn" class="button secondary" style="margin-top: 0.5rem;">Download Sample (WAV)</button>
+                </div>
+            </div>
+            <div id="tab-upload" class="tab-content">
+                <p>Upload a high-quality audio file (WAV, MP3, FLAC) of 10-30 seconds.</p>
+                <input type="file" id="audio-file-input" accept="audio/*">
+            </div>
+            <div id="tab-url" class="tab-content">
+                <p>Provide a direct URL to an audio file.</p>
+                <input type="text" id="audio-url-input" placeholder="https://example.com/voice_sample.wav">
+            </div>
+            <hr style="margin: 1.5rem 0; border-color: var(--border-color);">
+            <div class="form-group">
+                <label for="voice-name-input">Voice Name</label>
+                <input type="text" id="voice-name-input" placeholder="e.g., 'My Voice'">
+            </div>
+            <div class="form-group checkbox-group">
+                <input type="checkbox" id="consent-checkbox">
+                <label for="consent-checkbox">I have the right to use this voice and agree to the <a href="#" id="privacy-link">Privacy Policy</a>.</label>
+            </div>
+            <div class="button-group">
+                <button id="create-voice-btn" class="button primary" disabled>Create Voice</button>
+            </div>
+        </div>
+    </div>
+    <div id="privacy-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" aria-label="Close">&times;</button>
+            <h2>Privacy Notice</h2>
+            <p><strong>Your privacy is important.</strong></p>
+            <p>When you create a voice profile using the voice cloning feature, an audio sample you provide is uploaded to our service provider for processing. Here's what you need to know:</p>
+            <ul>
+                <li><strong>What is uploaded:</strong> The audio sample you record, upload, or link to.</li>
+                <li><strong>Purpose:</strong> The sample is used solely to generate a mathematical model of the voice for text-to-speech synthesis.</li>
+                <li><strong>Data Retention:</strong> Audio samples are typically deleted immediately after processing. The resulting voice model is stored securely and associated with your account. Please refer to our (or the third-party provider's) full privacy policy for specific retention periods.</li>
+                <li><strong>Consent (GDPR style):</strong> By using the voice cloning feature, you confirm that you are the person speaking in the audio sample, or that you have explicit, documented consent from the person speaking to create a synthetic version of their voice. Unauthorized use of others' voices is strictly prohibited.</li>
+            </ul>
+            <p>If you use the "Local Fallback" or "Browser Voice" option, no audio is ever sent to any server.</p>
+            <div class="button-group" style="margin-top: 1rem;">
+                 <button id="privacy-modal-close-btn" class="button primary">I Understand</button>
+            </div>
+        </div>
+    </div>
+    <div id="notification-container"></div>
+    <script>
+    (function() {
+        'use strict';
+        
+        // ==========================================================================
+        // CONFIGURATION - THIS IS NOW PRE-CONFIGURED FOR REPLIT
+        // ==========================================================================
+        const PLACEHOLDER_API_BASE = ''; // This makes it work on Replit automatically
+
+        const app = {
+            config: {
+                apiBaseUrl: PLACEHOLDER_API_BASE,
+                useLocalFallback: false, mockBackend: false, showDevLogs: true,
+                recording: { mimeType: 'audio/webm', timeslice: 250 },
+            },
+            state: {
+                isRecording: false, isSynthesizing: false, isPlaying: false,
+                audioBlob: null, audioUrl: null, voices: [],
+                selectedVoiceId: 'browser-voice-1',
+                recordedSample: { blob: null, url: null },
+            },
+            audio: {
+                audioContext: null, recorder: null, stream: null, analyser: null,
+                source: null, dataArray: null, animationFrameId: null,
+            },
+            ui: {},
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cacheDOMElements();
+            registerEventListeners();
+            initApp();
+        });
+
+        function cacheDOMElements() {
+            app.ui = {
+                textInput: document.getElementById('text-input'),
+                synthesizeBtn: document.getElementById('synthesize-btn'),
+                demoHelloBtn: document.getElementById('demo-hello-btn'),
+                voiceSelect: document.getElementById('voice-select'),
+                fallbackNotice: document.getElementById('fallback-notice'),
+                cloneVoiceBtn: document.getElementById('clone-voice-btn'),
+                synthesisProgress: document.getElementById('synthesis-progress-container'),
+                playbackCard: document.getElementById('playback-card'),
+                audioPlayer: document.getElementById('audio-player'),
+                playPauseBtn: document.getElementById('play-pause-btn'),
+                playIcon: document.getElementById('play-icon'),
+                pauseIcon: document.getElementById('pause-icon'),
+                stopBtn: document.getElementById('stop-btn'),
+                seekBar: document.getElementById('seek-bar'),
+                timeDisplay: document.getElementById('time-display'),
+                downloadBtn: document.getElementById('download-btn'),
+                speedSlider: document.getElementById('speed-slider'),
+                speedValue: document.getElementById('speed-value'),
+                pitchSlider: document.getElementById('pitch-slider'),
+                pitchValue: document.getElementById('pitch-value'),
+                volumeSlider: document.getElementById('volume-slider'),
+                volumeValue: document.getElementById('volume-value'),
+                cloneModal: document.getElementById('clone-modal'),
+                privacyModal: document.getElementById('privacy-modal'),
+                modalCloseBtns: document.querySelectorAll('.modal-close'),
+                privacyLink: document.getElementById('privacy-link'),
+                privacyModalCloseBtn: document.getElementById('privacy-modal-close-btn'),
+                tabButtons: document.querySelectorAll('.tab-button'),
+                tabContents: document.querySelectorAll('.tab-content'),
+                recordBtn: document.getElementById('record-btn'),
+                stopRecordBtn: document.getElementById('stop-record-btn'),
+                vuMeter: document.getElementById('vu-meter'),
+                recordingStatus: document.getElementById('recording-status'),
+                recordedAudioPlayer: document.getElementById('recorded-audio-player'),
+                recordedAudioControls: document.getElementById('recorded-audio-controls'),
+                downloadSampleBtn: document.getElementById('download-sample-btn'),
+                audioFileInput: document.getElementById('audio-file-input'),
+                audioUrlInput: document.getElementById('audio-url-input'),
+                voiceNameInput: document.getElementById('voice-name-input'),
+                consentCheckbox: document.getElementById('consent-checkbox'),
+                createVoiceBtn: document.getElementById('create-voice-btn'),
+                devLocalOnlyToggle: document.getElementById('dev-local-only-toggle'),
+                devMockBackendToggle: document.getElementById('dev-mock-backend-toggle'),
+                devLogsToggle: document.getElementById('dev-logs-toggle'),
+                devLogsOutput: document.getElementById('dev-logs-output'),
+                darkModeToggle: document.getElementById('darkModeToggle'),
+                notificationContainer: document.getElementById('notification-container'),
+            };
+        }
+        
+        function registerEventListeners() {
+            app.ui.synthesizeBtn.addEventListener('click', handleSynthesize);
+            app.ui.demoHelloBtn.addEventListener('click', handleDemoHello);
+            app.ui.voiceSelect.addEventListener('change', handleVoiceChange);
+            app.ui.playPauseBtn.addEventListener('click', togglePlayPause);
+            app.ui.stopBtn.addEventListener('click', stopPlayback);
+            app.ui.audioPlayer.addEventListener('timeupdate', updateSeekBar);
+            app.ui.audioPlayer.addEventListener('ended', onPlaybackEnd);
+            app.ui.seekBar.addEventListener('input', seekAudio);
+            app.ui.downloadBtn.addEventListener('click', downloadAudio);
+            app.ui.speedSlider.addEventListener('input', e => updateSliderValue(e.target, app.ui.speedValue, 'x'));
+            app.ui.pitchSlider.addEventListener('input', e => updateSliderValue(e.target, app.ui.pitchValue, ''));
+            app.ui.volumeSlider.addEventListener('input', e => {
+                updateSliderValue(e.target, app.ui.volumeValue, '%', 100);
+                app.ui.audioPlayer.volume = e.target.value;
+            });
+            app.ui.cloneVoiceBtn.addEventListener('click', () => app.ui.cloneModal.classList.add('is-visible'));
+            app.ui.privacyLink.addEventListener('click', (e) => { e.preventDefault(); app.ui.privacyModal.classList.add('is-visible'); });
+            app.ui.modalCloseBtns.forEach(btn => btn.addEventListener('click', closeModal));
+            app.ui.privacyModalCloseBtn.addEventListener('click', closeModal);
+            window.addEventListener('click', (e) => { if (e.target.classList.contains('modal')) closeModal(); });
+            app.ui.tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tab = button.dataset.tab;
+                    app.ui.tabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    app.ui.tabContents.forEach(content => content.classList.remove('active'));
+                    document.getElementById(`tab-${tab}`).classList.add('active');
+                });
+            });
+            app.ui.recordBtn.addEventListener('click', startRecording);
+            app.ui.stopRecordBtn.addEventListener('click', stopRecording);
+            app.ui.downloadSampleBtn.addEventListener('click', downloadRecordedSample);
+            app.ui.voiceNameInput.addEventListener('input', validateCreateVoiceForm);
+            app.ui.consentCheckbox.addEventListener('change', validateCreateVoiceForm);
+            app.ui.createVoiceBtn.addEventListener('click', handleCreateVoice);
+            app.ui.devLocalOnlyToggle.addEventListener('change', (e) => { app.config.useLocalFallback = e.target.checked; updateVoiceSelectionUI(); logDev('Local fallback mode ' + (app.config.useLocalFallback ? 'enabled' : 'disabled')); });
+            app.ui.devMockBackendToggle.addEventListener('change', (e) => { app.config.mockBackend = e.target.checked; logDev('Mock backend mode ' + (app.config.mockBackend ? 'enabled' : 'disabled')); });
+            app.ui.devLogsToggle.addEventListener('change', (e) => { app.config.showDevLogs = e.target.checked; });
+            app.ui.darkModeToggle.addEventListener('click', toggleDarkMode);
+        }
+
+        function initApp() {
+            logDev('App initializing...');
+            checkBrowserSupport();
+            initDarkMode();
+            window.AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!window.AudioContext) { showNotification('Web Audio API not supported in this browser.', 'error'); app.ui.cloneVoiceBtn.disabled = true; }
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { showNotification('Media Devices API not supported.', 'error'); app.ui.recordBtn.disabled = true; }
+            loadVoices();
+            updateVoiceSelectionUI();
+        }
+
+        async function handleSynthesize() {
+            const text = app.ui.textInput.value.trim();
+            if (!text) { showNotification('Please enter some text to synthesize.', 'info'); return; }
+            if (app.state.isSynthesizing) return;
+            setSynthesizingState(true);
+            stopPlayback();
+            const selectedVoice = app.state.voices.find(v => v.id === app.state.selectedVoiceId);
+            const useFallback = app.config.useLocalFallback || selectedVoice.isBrowserVoice;
+            try {
+                if (useFallback) { await synthesizeWithBrowser(text, selectedVoice); } 
+                else { await synthesizeWithAPI(text, selectedVoice); }
+            } catch (error) {
+                logDev(`Synthesis error: ${error.message}`, error);
+                showNotification(`Synthesis failed: ${error.message}`, 'error');
+            } finally {
+                setSynthesizingState(false);
+            }
+        }
+
+        function synthesizeWithBrowser(text, voice) {
+            return new Promise((resolve, reject) => {
+                if (!('speechSynthesis' in window)) { return reject(new Error('Browser SpeechSynthesis not supported.')); }
+                logDev(`Synthesizing with browser voice: ${voice.name}`);
+                const utterance = new SpeechSynthesisUtterance(text);
+                const browserVoices = window.speechSynthesis.getVoices();
+                const selectedBrowserVoice = browserVoices.find(v => v.name === voice.name);
+                if (selectedBrowserVoice) { utterance.voice = selectedBrowserVoice; }
+                utterance.rate = parseFloat(app.ui.speedSlider.value);
+                utterance.pitch = parseFloat(app.ui.pitchSlider.value);
+                utterance.volume = parseFloat(app.ui.volumeSlider.value);
+                utterance.onend = () => { logDev('Browser synthesis finished.'); showNotification('Using browser TTS. Playback through system audio.', 'info'); app.ui.playbackCard.style.display = 'none'; resolve(); };
+                utterance.onerror = (event) => { reject(new Error(`SpeechSynthesis Error: ${event.error}`)); };
+                window.speechSynthesis.speak(utterance);
+            });
+        }
+        
+        async function synthesizeWithAPI(text, voice) {
+            logDev(`Synthesizing with API voice: ${voice.name} (ID: ${voice.backendVoiceId})`);
+            const response = await api.synthesizeText({ text: text, voice_id: voice.backendVoiceId, speed: parseFloat(app.ui.speedSlider.value), pitch: parseFloat(app.ui.pitchSlider.value) });
+            if (response && response.size > 0) {
+                setupAudioPlayback(response);
+                showNotification('Synthesis successful!', 'success');
+            } else {
+                throw new Error('API returned empty audio data.');
+            }
+        }
+
+        async function handleCreateVoice() {
+            const voiceName = app.ui.voiceNameInput.value.trim();
+            if (!voiceName) { showNotification('Please enter a name for the voice.', 'info'); return; }
+            let audioSampleBlob = null;
+            const activeTab = document.querySelector('.tab-button.active').dataset.tab;
+            if (activeTab === 'record') { audioSampleBlob = app.state.recordedSample.blob; } 
+            else if (activeTab === 'upload') { const file = app.ui.audioFileInput.files[0]; if (file) audioSampleBlob = file; } 
+            else if (activeTab === 'url') { const url = app.ui.audioUrlInput.value.trim(); if (!url) { showNotification('Please provide a valid audio URL.', 'info'); return; } logDev(`Using URL for cloning: ${url}`); }
+            if (!audioSampleBlob && activeTab !== 'url') { showNotification('Please provide an audio sample to clone.', 'info'); return; }
+            setSynthesizingState(true, 'Creating voice profile...');
+            try {
+                let wavBlob = audioSampleBlob;
+                if (audioSampleBlob && audioSampleBlob.type !== 'audio/wav') {
+                    logDev('Converting sample to WAV format...');
+                    const audioBuffer = await audioSampleBlob.arrayBuffer();
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const decodedBuffer = await audioContext.decodeAudioData(audioBuffer);
+                    wavBlob = bufferToWav(decodedBuffer);
+                    logDev(`Conversion complete. WAV size: ${wavBlob.size} bytes`);
+                }
+                const result = await api.createVoiceClone({ name: voiceName, sample: wavBlob });
+                if (result && result.voice_id) {
+                    const newVoice = { id: 'custom-' + Date.now(), name: voiceName, backendVoiceId: result.voice_id, isBrowserVoice: false, source: 'cloned' };
+                    app.state.voices.push(newVoice);
+                    saveVoicesToLocalStorage();
+                    updateVoiceSelectionUI(newVoice.id);
+                    showNotification(`Voice "${voiceName}" created successfully!`, 'success');
+                    closeModal();
+                } else { throw new Error('API did not return a valid voice ID.'); }
+            } catch (error) {
+                logDev(`Voice creation error: ${error.message}`, error);
+                showNotification(`Failed to create voice: ${error.message}`, 'error');
+            } finally { setSynthesizingState(false); }
+        }
+
+        function loadVoices() {
+            const storedVoices = localStorage.getItem('ai-voice-lab-voices');
+            if (storedVoices) { app.state.voices = JSON.parse(storedVoices); } 
+            else {
+                app.state.voices = [
+                    { id: 'browser-voice-1', name: 'Browser Voice (Default)', isBrowserVoice: true },
+                    { id: 'demo-ai-voice-1', name: 'Demo AI Voice - "Nova"', backendVoiceId: '21m00Tcm4TlvDq8ikWAM', isBrowserVoice: false },
+                    { id: 'demo-ai-voice-2', name: 'Demo AI Voice - "Orion"', backendVoiceId: 'AZnzlk1XvdvUeBnXmlld', isBrowserVoice: false },
+                ];
+                saveVoicesToLocalStorage();
+            }
+            logDev(`Loaded ${app.state.voices.length} voices.`);
+        }
+
+        function saveVoicesToLocalStorage() { localStorage.setItem('ai-voice-lab-voices', JSON.stringify(app.state.voices)); }
+        
+        function updateVoiceSelectionUI(selectedId = null) {
+            app.ui.voiceSelect.innerHTML = '';
+            app.state.voices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice.id;
+                option.textContent = voice.name;
+                app.ui.voiceSelect.appendChild(option);
+            });
+            if (selectedId) { app.ui.voiceSelect.value = selectedId; } 
+            else { app.ui.voiceSelect.value = app.state.selectedVoiceId; }
+            handleVoiceChange();
+        }
+
+        function handleVoiceChange() {
+            app.state.selectedVoiceId = app.ui.voiceSelect.value;
+            const selectedVoice = app.state.voices.find(v => v.id === app.state.selectedVoiceId);
+            const useFallback = app.config.useLocalFallback || (selectedVoice && selectedVoice.isBrowserVoice);
+            app.ui.fallbackNotice.style.display = useFallback ? 'block' : 'none';
+        }
+
+        function setupAudioPlayback(blob) {
+            if (app.state.audioUrl) { URL.revokeObjectURL(app.state.audioUrl); }
+            app.state.audioBlob = blob;
+            app.state.audioUrl = URL.createObjectURL(blob);
+            app.ui.audioPlayer.src = app.state.audioUrl;
+            app.ui.playbackCard.style.display = 'block';
+            togglePlayPause(true);
+        }
+
+        function togglePlayPause(forcePlay = false) {
+            if (app.ui.audioPlayer.paused && (app.state.isPlaying === false || forcePlay === true)) {
+                app.ui.audioPlayer.play().catch(e => { showNotification('Playback failed. User interaction may be required.', 'error'); logDev(`Playback error: ${e.message}`); });
+                app.ui.playIcon.style.display = 'none';
+                app.ui.pauseIcon.style.display = 'block';
+                app.ui.playPauseBtn.setAttribute('aria-label', 'Pause');
+                app.state.isPlaying = true;
+            } else {
+                app.ui.audioPlayer.pause();
+                app.ui.playIcon.style.display = 'block';
+                app.ui.pauseIcon.style.display = 'none';
+                app.ui.playPauseBtn.setAttribute('aria-label', 'Play');
+                app.state.isPlaying = false;
+            }
+        }
+        
+        function stopPlayback() {
+            app.ui.audioPlayer.pause();
+            app.ui.audioPlayer.currentTime = 0;
+            app.ui.playIcon.style.display = 'block';
+            app.ui.pauseIcon.style.display = 'none';
+            app.state.isPlaying = false;
+        }
+
+        function onPlaybackEnd() {
+            app.ui.playIcon.style.display = 'block';
+            app.ui.pauseIcon.style.display = 'none';
+            app.state.isPlaying = false;
+        }
+
+        function updateSeekBar() {
+            const percentage = (app.ui.audioPlayer.currentTime / app.ui.audioPlayer.duration) * 100;
+            app.ui.seekBar.value = percentage || 0;
+            app.ui.timeDisplay.textContent = `${formatTime(app.ui.audioPlayer.currentTime)} / ${formatTime(app.ui.audioPlayer.duration || 0)}`;
+        }
+        
+        function seekAudio() { const time = (app.ui.seekBar.value / 100) * app.ui.audioPlayer.duration; app.ui.audioPlayer.currentTime = time; }
+
+        function downloadAudio() {
+            if (!app.state.audioBlob) { showNotification('No audio to download.', 'info'); return; }
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = `tts-output-${timestamp}.wav`;
+            const a = document.createElement('a');
+            a.href = app.state.audioUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        async function startRecording() {
+            if (app.state.isRecording) return;
+            try {
+                app.audio.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                app.state.isRecording = true;
+                app.ui.recordBtn.style.display = 'none';
+                app.ui.stopRecordBtn.style.display = 'inline-flex';
+                app.ui.recordedAudioControls.style.display = 'none';
+                app.ui.recordingStatus.textContent = 'Recording... (00:00)';
+                app.audio.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                app.audio.source = app.audio.audioContext.createMediaStreamSource(app.audio.stream);
+                app.audio.analyser = app.audio.audioContext.createAnalyser();
+                app.audio.analyser.fftSize = 256;
+                app.audio.source.connect(app.audio.analyser);
+                app.audio.dataArray = new Uint8Array(app.audio.analyser.frequencyBinCount);
+                drawVUMeter();
+                const chunks = [];
+                app.audio.recorder = new MediaRecorder(app.audio.stream, { mimeType: app.config.recording.mimeType });
+                app.audio.recorder.ondataavailable = e => chunks.push(e.data);
+                app.audio.recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: app.config.recording.mimeType });
+                    app.state.recordedSample.blob = blob;
+                    app.state.recordedSample.url = URL.createObjectURL(blob);
+                    app.ui.recordedAudioPlayer.src = app.state.recordedSample.url;
+                    app.ui.recordedAudioControls.style.display = 'block';
+                    validateCreateVoiceForm();
+                };
+                app.audio.recorder.start();
+                let seconds = 0;
+                app.state.recordingTimer = setInterval(() => { seconds++; app.ui.recordingStatus.textContent = `Recording... (${formatTime(seconds)})`; }, 1000);
+            } catch (err) { showNotification('Microphone access denied or not available.', 'error'); logDev('getUserMedia error: ', err); app.state.isRecording = false; }
+        }
+        
+        function stopRecording() {
+            if (!app.state.isRecording || !app.audio.recorder) return;
+            app.audio.recorder.stop();
+            app.audio.stream.getTracks().forEach(track => track.stop());
+            cancelAnimationFrame(app.audio.animationFrameId);
+            clearInterval(app.state.recordingTimer);
+            app.state.isRecording = false;
+            app.ui.recordBtn.style.display = 'inline-flex';
+            app.ui.stopRecordBtn.style.display = 'none';
+            app.ui.recordingStatus.textContent = 'Recording finished. Preview below.';
+        }
+        
+        async function downloadRecordedSample() {
+            if (!app.state.recordedSample.blob) return;
+            logDev('Converting sample to WAV for download...');
+            const audioBuffer = await app.state.recordedSample.blob.arrayBuffer();
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const decodedBuffer = await audioContext.decodeAudioData(audioBuffer);
+            const wavBlob = bufferToWav(decodedBuffer);
+            const wavUrl = URL.createObjectURL(wavBlob);
+            const a = document.createElement('a');
+            a.href = wavUrl;
+            a.download = 'voice-sample.wav';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(wavUrl);
+        }
+
+        function drawVUMeter() {
+            const canvas = app.ui.vuMeter;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            function draw() {
+                app.audio.animationFrameId = requestAnimationFrame(draw);
+                app.audio.analyser.getByteFrequencyData(app.audio.dataArray);
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim();
+                ctx.fillRect(0, 0, width, height);
+                const average = app.audio.dataArray.reduce((a, b) => a + b) / app.audio.dataArray.length;
+                const barWidth = (average / 255) * width;
+                ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+                ctx.fillRect(0, 0, barWidth, height);
+            }
+            draw();
+        }
+
+        const api = {
+            async synthesizeText(params) {
+                const endpoint = `${app.config.apiBaseUrl}/api/tts`;
+                logDev(`API Call (Synthesize): POST ${endpoint}`, params);
+                if (app.config.mockBackend) { logDev('Using mocked synthesis response.'); await new Promise(res => setTimeout(res, 1500)); return generateMockAudioBlob(); }
+                try {
+                    const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', }, body: JSON.stringify(params) });
+                    if (!response.ok) { const errorText = await response.text(); throw new Error(`API Error: ${response.status} ${response.statusText} - ${errorText}`); }
+                    const audioArrayBuffer = await response.arrayBuffer();
+                    return new Blob([audioArrayBuffer], { type: response.headers.get('Content-Type') || 'audio/mpeg' });
+                } catch (error) { logDev(error); throw new Error('Network request failed. Is your server running?'); }
+            },
+            async createVoiceClone(params) {
+                const endpoint = `${app.config.apiBaseUrl}/api/voice-clone/create`;
+                logDev(`API Call (Clone): POST ${endpoint}`, { name: params.name, sample_size: params.sample ? params.sample.size : 'URL provided' });
+                if (app.config.mockBackend) { logDev('Using mocked voice clone response.'); await new Promise(res => setTimeout(res, 2500)); return { success: true, voice_id: `mock_voice_${Date.now()}` }; }
+                const formData = new FormData();
+                formData.append('name', params.name);
+                if (params.sample) { formData.append('sample_file', params.sample, 'voice_sample.wav'); }
+                try {
+                    const response = await fetch(endpoint, { method: 'POST', body: formData });
+                    if (!response.ok) { throw new Error(`API Error: ${response.status} ${response.statusText}`); }
+                    return await response.json();
+                } catch (error) { logDev(error); throw new Error('Network request failed. Is your proxy server running?'); }
+            }
+        };
+
+        function checkBrowserSupport() {
+            let supported = true;
+            const features = { "SpeechSynthesis": 'speechSynthesis' in window, "Web Audio API": !!(window.AudioContext || window.webkitAudioContext), "MediaRecorder": !!window.MediaRecorder, "Fetch API": !!window.fetch };
+            for (const [name, isSupported] of Object.entries(features)) {
+                if (!isSupported) { supported = false; logDev(`Unsupported feature: ${name}`); showNotification(`Your browser doesn't support a required feature: ${name}. Some functionality may be limited.`, 'error', 10000); }
+            }
+            return supported;
+        }
+
+        function setSynthesizingState(isSynthesizing, message = 'Synthesizing...') {
+            app.state.isSynthesizing = isSynthesizing;
+            app.ui.synthesizeBtn.disabled = isSynthesizing;
+            app.ui.createVoiceBtn.disabled = isSynthesizing;
+            if (isSynthesizing) { app.ui.synthesisProgress.querySelector('p').textContent = message; app.ui.synthesisProgress.style.display = 'block'; } 
+            else { app.ui.synthesisProgress.style.display = 'none'; }
+        }
+        
+        function validateCreateVoiceForm() {
+            const hasName = app.ui.voiceNameInput.value.trim().length > 0;
+            const hasConsent = app.ui.consentCheckbox.checked;
+            const activeTab = document.querySelector('.tab-button.active').dataset.tab;
+            let hasSample = false;
+            if (activeTab === 'record') hasSample = !!app.state.recordedSample.blob;
+            if (activeTab === 'upload') hasSample = app.ui.audioFileInput.files.length > 0;
+            if (activeTab === 'url') hasSample = app.ui.audioUrlInput.value.trim().length > 10;
+            app.ui.createVoiceBtn.disabled = !(hasName && hasConsent && hasSample);
+        }
+        
+        function handleDemoHello() { app.ui.textInput.value = "Hello! This is a demonstration of the AI Voice Lab."; handleSynthesize(); }
+        function updateSliderValue(slider, display, suffix = '', multiplier = 1) { let value = (parseFloat(slider.value) * multiplier).toFixed(slider.step.includes('.') ? 1 : 0); if (suffix === '%') value = Math.round(value); display.textContent = `${value}${suffix}`; }
+        function formatTime(seconds) { const min = Math.floor(seconds / 60); const sec = Math.floor(seconds % 60); return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`; }
+        function closeModal() { document.querySelectorAll('.modal.is-visible').forEach(modal => { modal.classList.remove('is-visible'); }); if (app.state.isRecording) { stopRecording(); } }
+
+        function showNotification(message, type = 'info', duration = 4000) {
+            const notif = document.createElement('div');
+            notif.className = `notification ${type}`;
+            notif.textContent = message;
+            app.ui.notificationContainer.appendChild(notif);
+            setTimeout(() => { notif.classList.add('is-visible'); }, 10);
+            setTimeout(() => { notif.classList.remove('is-visible'); notif.addEventListener('transitionend', () => notif.remove()); }, duration);
+        }
+
+        function logDev(...args) {
+            if (app.config.showDevLogs) { console.log('[VoiceLab]', ...args); }
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')}`;
+            app.ui.devLogsOutput.prepend(logEntry);
+            if (app.ui.devLogsOutput.children.length > 100) { app.ui.devLogsOutput.lastChild.remove(); }
+        }
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDarkMode);
+            document.querySelector('.sun').style.display = isDarkMode ? 'none' : 'block';
+            document.querySelector('.moon').style.display = isDarkMode ? 'block' : 'none';
+        }
+
+        function initDarkMode() {
+            const useDark = localStorage.getItem('darkMode') === 'true';
+            if (useDark) { document.body.classList.add('dark-mode'); document.querySelector('.sun').style.display = 'none'; document.querySelector('.moon').style.display = 'block'; } 
+            else { document.querySelector('.sun').style.display = 'block'; document.querySelector('.moon').style.display = 'none'; }
+        }
+
+        function bufferToWav(buffer) {
+            const numOfChan = buffer.numberOfChannels, length = buffer.length * numOfChan * 2 + 44;
+            const bufferOut = new ArrayBuffer(length), view = new DataView(bufferOut), channels = [];
+            let i, sample, offset = 0, pos = 0;
+            function writeString(view, offset, string) { for (let i = 0; i < string.length; i++) { view.setUint8(offset + i, string.charCodeAt(i)); } }
+            writeString(view, pos, 'RIFF'); pos += 4;
+            view.setUint32(pos, length - 8, true); pos += 4;
+            writeString(view, pos, 'WAVE'); pos += 4;
+            writeString(view, pos, 'fmt '); pos += 4;
+            view.setUint32(pos, 16, true); pos += 4;
+            view.setUint16(pos, 1, true); pos += 2;
+            view.setUint16(pos, numOfChan, true); pos += 2;
+            view.setUint32(pos, buffer.sampleRate, true); pos += 4;
+            view.setUint32(pos, buffer.sampleRate * 2 * numOfChan, true); pos += 4;
+            view.setUint16(pos, numOfChan * 2, true); pos += 2;
+            view.setUint16(pos, 16, true); pos += 2;
+            writeString(view, pos, 'data'); pos += 4;
+            view.setUint32(pos, length - pos - 4, true); pos += 4;
+            for (i = 0; i < buffer.numberOfChannels; i++) { channels.push(buffer.getChannelData(i)); }
+            while (pos < length) { for (i = 0; i < numOfChan; i++) { sample = Math.max(-1, Math.min(1, channels[i][offset])); sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF); view.setInt16(pos, sample, true); pos += 2; } offset++; }
+            return new Blob([view], { type: 'audio/wav' });
+        }
+        
+        function generateMockAudioBlob() {
+            const sampleRate = 24000, duration = 2, frequency = 440, numFrames = sampleRate * duration;
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+            const buffer = audioContext.createBuffer(1, numFrames, sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < numFrames; i++) { data[i] = Math.sin(2 * Math.PI * frequency * i / sampleRate); }
+            return bufferToWav(buffer);
+        }
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const serviceWorkerScript = `const CACHE_NAME = 'ai-voice-lab-cache-v1'; const urlsToCache = ['/']; self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache))); }); self.addEventListener('fetch', e => { e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))); });`;
+                try {
+                    const blob = new Blob([serviceWorkerScript], { type: 'application/javascript' });
+                    const swUrl = URL.createObjectURL(blob);
+                    navigator.serviceWorker.register(swUrl).then(reg => logDev('SW registered', reg.scope)).catch(err => logDev('SW reg failed', err));
+                } catch (error) { logDev('SW from blob failed', error); }
+            });
+        }
+    })();
+    </script>
+</body>
+</html>
